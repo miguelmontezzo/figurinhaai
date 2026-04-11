@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn, formatPercent, getProgressBg } from '@/lib/utils'
+import { IS_PREVIEW, MOCK_PROFILE, generateMockUserStickers } from '@/lib/mock-data'
 import toast from 'react-hot-toast'
 
 interface Profile {
@@ -42,8 +43,32 @@ export default function PerfilPage() {
 
   useEffect(() => {
     async function loadProfile() {
+      // Modo preview: usar dados mock
+      if (IS_PREVIEW) {
+        const mockData = MOCK_PROFILE as Profile
+        setProfile(mockData)
+        setNewName(mockData.display_name || mockData.username)
+
+        const mockStickers = generateMockUserStickers()
+        const userPasted = new Set(
+          Array.from(mockStickers.values()).filter(s => s.is_pasted).map(s => s.sticker_id)
+        )
+        const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+        const stats = groups.map((group, i) => {
+          const start = 58 + i * 72
+          let pasted = 0
+          for (let n = start; n < start + 72; n++) {
+            if (userPasted.has(n)) pasted++
+          }
+          return { group, pasted, total: 72 }
+        })
+        setGroupStats(stats)
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { setLoading(false); return }
 
       const [profileRes, stickersRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),

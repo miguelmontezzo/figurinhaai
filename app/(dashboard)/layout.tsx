@@ -7,11 +7,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 
-  if (!user) {
-    redirect('/login')
+  // Só verifica auth se Supabase está configurado com credenciais reais
+  if (supabaseUrl && !supabaseUrl.includes('placeholder')) {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
   }
 
   return (

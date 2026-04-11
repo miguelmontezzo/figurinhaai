@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, Filter, Trophy, Star, ChevronDown, ChevronRight, Loader2, BookOpen } from 'lucide-react'
+import { Search, Trophy, ChevronDown, ChevronRight, Loader2, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getAllStickers, getAllSections, TEAMS, type Sticker } from '@/lib/stickers-data'
 import { StickerCard } from '@/components/album/StickerCard'
 import { StickerModal } from '@/components/album/StickerModal'
 import { cn, formatPercent, getSectionColor } from '@/lib/utils'
+import { IS_PREVIEW, MOCK_PROFILE, generateMockUserStickers } from '@/lib/mock-data'
 import toast from 'react-hot-toast'
 
 interface UserStickerData {
@@ -41,8 +42,17 @@ export default function AlbumPage() {
   // Carregar dados do usuário
   useEffect(() => {
     async function loadData() {
+      // Modo preview: usar dados mock
+      if (IS_PREVIEW) {
+        setUserStickers(generateMockUserStickers())
+        setProfile(MOCK_PROFILE)
+        setUserId('mock-user-id')
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { setLoading(false); return }
       setUserId(user.id)
 
       const [stickersRes, profileRes] = await Promise.all([
