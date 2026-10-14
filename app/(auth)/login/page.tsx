@@ -1,42 +1,37 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { Trophy, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import toast from 'react-hot-toast'
+import { loginAction, type LoginState } from './actions'
+
+function SubmitButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={disabled || pending}
+      className="w-full py-4 rounded-xl font-bold text-black text-base transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+      style={{ background: 'linear-gradient(135deg, #FFD700, #F0A500)' }}
+    >
+      {pending ? (
+        <>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Entrando...
+        </>
+      ) : (
+        'Entrar'
+      )}
+    </button>
+  )
+}
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [state, formAction] = useFormState<LoginState, FormData>(loginAction, undefined)
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email || !password) return
-
-    setLoading(true)
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      toast.error(
-        error.message.includes('Invalid login')
-          ? 'E-mail ou senha incorretos.'
-          : 'Erro ao entrar. Tente novamente.'
-      )
-      setLoading(false)
-      return
-    }
-
-    toast.success('Bem-vindo de volta!')
-    router.push('/album')
-    router.refresh()
-  }
 
   return (
     <div className="w-full max-w-sm">
@@ -60,18 +55,25 @@ export default function LoginPage() {
         <h1 className="text-xl font-bold text-white mb-1">Entrar</h1>
         <p className="text-sm text-gray-400 mb-6">Acesse seu álbum da Copa</p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form action={formAction} className="space-y-4">
+          {state?.error && (
+            <div className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              {state.error}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">
-              E-mail
+              Nome de usuário
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              name="username"
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value.replace(/\s/g, ''))}
+              placeholder="seu_nome"
               required
-              autoComplete="email"
+              autoComplete="username"
               className="input-field w-full px-4 py-3.5 rounded-xl text-sm"
             />
           </div>
@@ -82,6 +84,7 @@ export default function LoginPage() {
             </label>
             <div className="relative">
               <input
+                name="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -100,21 +103,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || !email || !password}
-            className="w-full py-4 rounded-xl font-bold text-black text-base transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-            style={{ background: 'linear-gradient(135deg, #FFD700, #F0A500)' }}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Entrando...
-              </>
-            ) : (
-              'Entrar'
-            )}
-          </button>
+          <SubmitButton disabled={!username || !password} />
         </form>
       </div>
 
